@@ -7,8 +7,8 @@
 <body ng-controller="myController">
     <div class="page-header">
         <div class="form-group">
-        	<input type="text" size="30" ng-model="example" placeholder = "Например: барбос + бобик = собаки" >
-        	<input type="button" value="Подставить!" ng-click="solve(example)">
+			&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<input type="text" size="30" ng-model="rebus" placeholder = "Например: барбос + бобик = собаки" >
+        	<input type="button" value="Подставить!" ng-click="solve(rebus)">
         </div>
     </div>
     <div class="panel">
@@ -31,52 +31,132 @@
 <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.3.11/angular.min.js"></script>
 <script>
 
+	let markersStringToList = (input, count=0) => {
+
+		const markers = new Set()
+		input.replace(/\s/g,'').split('!')
+			.forEach( (group, i) => {
+				group.split(',').filter(x => x !== '').forEach(interval => {
+					let begin, end
+					if((/^\d+-?\d*$/).test(interval)){
+						[begin, end] = interval.split('-')
+						if(!end) end = begin
+						begin = Number(begin)
+						end = Number(end)
+						end-begin >= 0 ? end++ : end--
+					} else if((/^\*$/).test(interval)) {
+						[begin, end] = [0, count]
+					}
+					if (Math.abs(end-begin)>100000) return
+					i%2 ? range(begin, end).forEach(x => markers.delete(x)) :
+						range(begin, end).forEach(x => markers.add(x))
+				})
+			})
+
+		return markers
+	}
+
+
 let myApp = angular.module("myApp", []);
     myApp.controller("myController", function ($scope) {
-    $scope.answers = [];
-	$scope.texts = "";
-	$scope.letters = "";
-
-	$scope.solve = function (example) {
-	//проверка верности примера
-
-	//Разобрать строку
-	let operation = ["*","/","+","-"];
-	var notion = {example: "", answer: ""}
-
-	var regulars = [
-	/^[^=]*=[^=]*$/,
-	/([^ +\-\/*=]+|[+-\/*=])/g,
-	/([А-Яа-яA-Za-z])/g,
-	];
-
-
-	// $scope.answers.push("Играем в аукцион честно!");
-	// return 0;
-
-	if(regulars[0].test(example)){
-		var words = example.match(regulars[1]);
-		var letters = example.match(regulars[2]);
-		var answers = [];
-		for (l1 in letters)
-			for (l2 in letters)
-				if(l1 != l2 && letters[l1] == letters[l2])
-					delete letters[l2];
-
-		letters.sort();
-
-		for (var length in letters){}
-		letters.length = +length+1;
-
-		if(letters.length>9){
-			$scope.answers = ["В выражении больше 10 различных букв!"];
-			return;
-		}
-
-		//Перебрать варианты
-		count = Math.pow(10,letters.length);
-
 		$scope.answers = [];
+		$scope.texts = "";
+		$scope.letters = "";
+
+		$scope.solve = function (rebus) {
+		//проверка верности примера
+
+			//Разобрать строку
+			let OPERATORS = {
+				"+": [1,(a,b)=>a+b],
+				"-": [1,(a,b)=>a-b],
+				"*": [2,(a,b)=>a*b],
+				"/": [2,(a,b)=>a/b],
+				'^': [3,(a,b)=>Math.pow(a,b)]
+			};
+
+			rebus = rebus.replace(/\s/g,'').split('=')
+
+			if (rebus.length !== 2){
+				$scope.answers = ["Выражение должно содержать ровно один знак равенства"];
+				return;
+			}
+
+			if (!(rebus[0] && rebus[1])){
+				$scope.answers = ["Некорректное выражение"];
+				return;
+			}
+
+			rebus = rebus.join('-')
+
+			function parse(formula_string){
+				const parsed_formula = []
+				let word = ""
+				for(let s of formula_string){
+					if((/([А-Яа-яA-Za-z0-9])/).test(s)){
+						word += s
+					}else{
+						if(word) parsed_formula.push(word)
+						word = ""
+					}
+					if((/([\^+\-*\/()])/).test(s)){
+						parsed_formula.push(s)
+					}
+				}
+				if(word) parsed_formula.push(word)
+				return parsed_formula
+			}
+
+			function shunting_yard(parsed_formula){
+				const poland_parsed_formula = []
+				let stack = []
+				for (let token of parsed_formula){
+					if (token in OPERATORS){
+						while(stack.length && stack[stack.length-1] !== "("
+							&& OPERATORS[token][0] <= OPERATORS[stack[stack.length-1]][0]){
+							poland_parsed_formula.push(stack.pop())
+						}
+						stack.push(token)
+					}
+					else if (token === ")"){
+						while(stack.length){
+							let x = stack.pop()
+							if (x === "("){
+								break
+							}
+							poland_parsed_formula.push(x)
+						}
+					}
+					else if (token === "("){
+						stack.push(token)
+					}
+					else {
+						poland_parsed_formula.push(token)
+					}
+				}
+				while(stack.length){
+					poland_parsed_formula.push(stack.pop())
+				}
+				return poland_parsed_formula
+			}
+
+			let letters = rebus.match(/([А-Яа-яA-Za-z])/g);
+
+			letters = (new Set(letters)).values()
+
+			let letters_map = new Map();
+
+			for (let s in letters) {
+				letters_map[s] = null
+			}
+
+			if(letters.size>9){
+				$scope.answers = ["В выражении больше 10 различных букв!"];
+				return;
+			}
+
+			//Перебрать варианты
+			count = Math.pow(10, letters.length);
 
 		$scope.texts = "";
 		for(key in words){
