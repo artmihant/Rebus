@@ -14,7 +14,7 @@ def rebus_preprocessing(rebus: str) -> tuple[list[str], set[str]]:
 
     """ Шаг 1 """
 
-    rebus_lowered = rebus.lower() # переводим в нижний регистр
+    rebus_lowered = rebus.upper() # переводим в верхний регистр
 
     rebus_stripped = ''.join(rebus_lowered.split())  # убираем все пробельные символы
 
@@ -141,7 +141,7 @@ def single_permutation_test(args):
             return None
 
 
-def parallel_solver(rpn_rebus: list[str]) -> list[dict[int,str]]:
+def parallel_solver(rpn_rebus: list[str], letters: set[str]) -> list[dict[int,str]]:
     """ Распараллеленый наивный способ решения """
     letters = parse_letters(rpn_rebus)
 
@@ -159,17 +159,17 @@ def parallel_solver(rpn_rebus: list[str]) -> list[dict[int,str]]:
     return tables
 
 
-def naive_solver(rpn_rebus: list[str]) -> list[dict[int,str]]:
+def naive_rebus_solver(rpn_rebus: list[str], letters) -> list[dict[int,str]]:
     """ Наивный способ решения """
-    letters = parse_letters(rpn_rebus)
+    substitution = {l:'' for l in letters}
 
     tables = []
 
     for permutation in permutations('0123456789', len(letters)):
         for i, s in enumerate(letters):
-            letters[s] = permutation[i]
+            substitution[s] = permutation[i]
 
-        table = str.maketrans(letters)
+        table = str.maketrans(substitution)
 
         rpn_rebus_substitute = substitute(rpn_rebus, table) 
 
@@ -233,7 +233,6 @@ def ten_adic_solver_part(rpn_rebus:list[str], power:int, old_tables:list[dict[in
 
 def solve(rebus: str) -> list[str]:
     """ Главная функция решателя ребусов """
-
 
     import time
     start_time = time.time()
