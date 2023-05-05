@@ -1,8 +1,48 @@
 from itertools import permutations
-
+from multiprocessing import Pool
 # решатели
 
 TRANSLATE = False # использовать ли str.translate и str.maketrans для замены
+
+
+def parallel_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
+    """ Распараллеленый наивный способ решения """
+    letters = parse_letters(rpn_rebus)
+
+    def single_permutation_test(args):
+
+        permutation, rpn_rebus = args
+
+        letters = parse_letters(rpn_rebus)
+        for i, s in enumerate(letters):
+            letters[s] = permutation[i]
+
+        table = str.maketrans(letters)
+
+        rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus, table) 
+        for word in rpn_rebus_substitute:
+            if word[0] == '0' and len(word)>1:
+                return None
+        else:
+            if calc(rpn_rebus_substitute) == 0:
+                return table
+            else:
+                return None
+
+    tables = []
+
+    p = Pool(6)
+
+    def arg():
+        for p in permutations('0123456789', len(letters)):
+            yield (p, rpn_rebus)
+    
+
+    tables = list(filter(lambda x: x, p.map(single_permutation_test, arg())))
+
+    return tables
+
+
 
 def naive_rebus_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
     """ Наивный способ решения """
@@ -83,6 +123,7 @@ def ten_adic_rebus_solver_part(rpn_rebus:list[str], power:int, old_substitutions
             rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus_partly_substitute, new_substitution)
 
             if calc(rpn_rebus_substitute, power) == 0:
+
                 new_substitutions.append(new_substitution)
 
     return new_substitutions
