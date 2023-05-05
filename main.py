@@ -3,7 +3,7 @@ from typing import Callable, Iterable, Iterator
 
 
 from preprocessing import rebus_preprocessing
-from solvers import naive_rebus_solver, ten_adic_rebus_solver, replace, parallel_solver
+from solvers import naive_rebus_solver, ten_adic_rebus_solver, replace, parallel_rebus_solver
 
 
 def solve(rebus: str, solver: Callable[[list[str]], list[dict[str,str]]]) -> list[str]:
@@ -26,15 +26,16 @@ def solve(rebus: str, solver: Callable[[list[str]], list[dict[str,str]]]) -> lis
 
 if __name__ == '__main__':
 
-    rebus = 'трава+корова+доярка = молоко'
+    rebus = 'ТРАВА+КОРОВА+ДОЯРКА = МОЛОКО'
 
     print(rebus)
 
     import time
     start_time = time.time()
 
-    solutions, substitutions = solve(rebus, parallel_solver)
+    # solutions, substitutions = solve(rebus, parallel_rebus_solver)
     # solutions, substitutions = solve(rebus, naive_rebus_solver)
+    solutions, substitutions = solve(rebus, ten_adic_rebus_solver)
 
     print("--- %s seconds ---" % (time.time() - start_time))
 

@@ -1,47 +1,12 @@
 from itertools import permutations
+import math
 from multiprocessing import Pool
-# решатели
-
-TRANSLATE = False # использовать ли str.translate и str.maketrans для замены
 
 
-def parallel_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
-    """ Распараллеленый наивный способ решения """
-    letters = parse_letters(rpn_rebus)
+TRANSLATE = True # использовать ли str.translate и str.maketrans для замены
+POOLS = 6 # сколько процессов будет запущено параллельно
 
-    def single_permutation_test(args):
-
-        permutation, rpn_rebus = args
-
-        letters = parse_letters(rpn_rebus)
-        for i, s in enumerate(letters):
-            letters[s] = permutation[i]
-
-        table = str.maketrans(letters)
-
-        rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus, table) 
-        for word in rpn_rebus_substitute:
-            if word[0] == '0' and len(word)>1:
-                return None
-        else:
-            if calc(rpn_rebus_substitute) == 0:
-                return table
-            else:
-                return None
-
-    tables = []
-
-    p = Pool(6)
-
-    def arg():
-        for p in permutations('0123456789', len(letters)):
-            yield (p, rpn_rebus)
-    
-
-    tables = list(filter(lambda x: x, p.map(single_permutation_test, arg())))
-
-    return tables
-
+# Решатели
 
 
 def naive_rebus_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
@@ -52,22 +17,25 @@ def naive_rebus_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
     letters = parse_letters(rpn_rebus)
 
     for permutation in permutations('0123456789', len(letters)):
-        substitution = {}
 
-        for i, s in enumerate(letters):
-            substitution[s] = permutation[i]
+        substitution = single_permutation_test((rpn_rebus, permutation, letters))
+        if substitution:
+            substitutions.append(substitution)
 
-        if TRANSLATE:
-            substitution = str.maketrans(substitution)
+    return substitutions
 
-        rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus, substitution) 
 
-        for word in rpn_rebus_substitute:
-            if word[0] == '0' and len(word)>1:
-                break # исключаем решения с числами, начинающимися на 0
-        else:
-            if calc(rpn_rebus_substitute) == 0:
-                substitutions.append(substitution)
+def parallel_rebus_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
+    """ Распараллеленый наивный способ решения """
+    letters = parse_letters(rpn_rebus)
+
+    p = Pool(POOLS)
+
+    def arg():
+        for permutation in permutations('0123456789', len(letters)):
+            yield (rpn_rebus, permutation, letters)
+
+    substitutions = list(filter (lambda x: x, p.map(single_permutation_test, arg())))
 
     return substitutions
 
@@ -84,16 +52,12 @@ def ten_adic_rebus_solver(rpn_rebus: list[str]) -> list[dict[str,str]]:
         substitutions_part = ten_adic_rebus_solver_part(rpn_rebus_part, power, substitutions_part)
 
     for substitution in substitutions_part:
-        rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus, substitution)
 
-        for word in rpn_rebus_substitute:
-            if word[0] == '0' and len(word)>1:
-                break
-        else:
-            if calc(rpn_rebus_substitute) == 0:
-                substitutions.append(substitution)
+        if single_substitution_test(rpn_rebus, substitution):
+            substitutions.append(substitution)
 
     return substitutions
+
 
 def ten_adic_rebus_solver_part(rpn_rebus:list[str], power:int, old_substitutions:list[dict[str,str]]) -> list[dict[str,str]]:
     """ Одна итерация продвинутого способа решения 
@@ -128,7 +92,41 @@ def ten_adic_rebus_solver_part(rpn_rebus:list[str], power:int, old_substitutions
 
     return new_substitutions
 
+
+
 # общие функции
+
+
+def single_permutation_test(args):
+
+    rpn_rebus, permutation, letters = args
+
+    substitution = {}
+
+    for i, s in enumerate(letters):
+        substitution[s] = permutation[i]
+
+    if TRANSLATE:
+        substitution = str.maketrans(substitution)
+
+    if single_substitution_test(rpn_rebus, substitution):
+        return substitution
+    return None
+
+        
+def single_substitution_test(rpn_rebus, substitution) -> bool:
+    """ проверка на то, что подстановка решает ребус"""
+    rpn_rebus_substitute = replace_rpn_rebus(rpn_rebus, substitution) 
+
+    for word in rpn_rebus_substitute:
+        if word[0] == '0' and len(word)>1:
+            return False
+    else:
+        if calc(rpn_rebus_substitute) == 0:
+            return True
+        else:
+            return False
+        
 
 def parse_letters(rpn_rebus: list[str]) -> list[str]:
     """ Вычленение из RPN выражения списка незамененных букв """
@@ -149,7 +147,6 @@ def replace(string:str, substitution: dict[str,str]) -> str:
 def replace_rpn_rebus(rpn_rebus: list[str], substitution: dict[int,str]) -> list[str]:
     """ Подстановка в RPN выражение словаря замены """
     return [replace(token, substitution) for token in rpn_rebus]
-
 
 def calc(rpn_expression: list[str], power: int = 0) -> int:
     """ Вычисление RPN выражения """
