@@ -72,7 +72,7 @@
 
 Напишем функцию под это:
 
-    def naive_rebus_solver(rpn_rebus: list[str], letters: set[str]) -> list[dict[int,str]]
+    def naive_rebus_solver(rpn_rebus: list[str], letters: set[str]) -> list[dict[str,str]]
         # Перебираем все возможные подстановки. Возвращаем список корректных подстановок
         return substitutions 
 
@@ -83,6 +83,7 @@
             {'К':'8','О':'6','З':'5','A':'3','С':'1','Т':'7','Д':'0'}
             {'К':'7','О':'6','З':'9','A':'3','С':'1','Т':'5','Д':'8'}
         ]
+
 
 Как же мы будем делать перебор? 
 
@@ -98,12 +99,16 @@
 
     def naive_rebus_solver(rpn_rebus, letters):
 
+        substitutions = []
         substitution = {l:'' for l in letters}
 
         for permutation in permutations('0123456789', len(letters)):
             for i, s in enumerate(letters):
                 substitution[s] = permutation[i]
             # ... 
+
+
+Нужно отметить, что pythonic way здесь в том, что бы использовать таблицы подстановки. `substitution_table = str.maketrans(substitution)`. Это немного ускоряет процесс подстановки букв в токены. Однако ускорение не столь существенно, и ради ясности подхода, было решено принебречь этой возможностью языка. 
 
 Подставляем, вычисляем, сравниваем с нулем каждую подстановку. Готово!
 
