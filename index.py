@@ -1,8 +1,9 @@
 import json
 import base64
-from server.rebus_solver import solve
+from server.solver import solve
 
 def handler(event, context):
+    """ Это функция для яндекс-облака """
 
     rebus = base64.b64decode(event['body']).decode('utf-8')
     

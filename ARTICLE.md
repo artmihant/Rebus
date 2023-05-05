@@ -58,12 +58,12 @@
         # 3) Токенезируем выражение
         # 4) Переводим выражение в RPN
 
-        return rpn_rebus, letters
+        return rpn_rebus, letters_set
 
     def test_rebus_preprocessing():
-        rpn_rebus, letters = rebus_preprocessing("КОЗА*2 = СТАДО")
+        rpn_rebus, letters_set = rebus_preprocessing("КОЗА*2 = СТАДО")
         assert rpn_rebus == ["КОЗА","2",'*',"СТАДО",'-']
-        assert letters == {'К','О','З','A','С','Т','Д'}
+        assert letters_set == {'К','О','З','A','С','Т','Д'}
 
 ### Поиск решений
 

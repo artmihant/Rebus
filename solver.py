@@ -3,7 +3,7 @@ from typing import Iterable, Iterator
 
 from multiprocessing import Pool
 
-def preprocessing(rebus: str) -> list[str]:
+def rebus_preprocessing(rebus: str) -> tuple[list[str], set[str]]:
     """Валидация ребуса и вычисление его RPN"""
 
     operators = {
@@ -76,7 +76,7 @@ def preprocessing(rebus: str) -> list[str]:
 
     rpn_rebus = list(shunting_yard(rebus_split))
 
-    return rpn_rebus
+    return rpn_rebus, letters_set
 
 
 
@@ -240,8 +240,7 @@ def solve(rebus: str) -> list[str]:
 
     rebus = rebus.lower()
 
-    rpn_rebus = preprocessing(rebus)
-
+    rpn_rebus, letters_set = rebus_preprocessing(rebus)
 
     tables = ten_adic_solver(rpn_rebus)
 
